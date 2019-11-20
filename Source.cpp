@@ -8,7 +8,7 @@
 
 #define EXPORT extern "C" __declspec (dllexport)
 
-#define judge(con) return not ? !(con) : (con);
+#define judge(con) return notflag ? !(con) : (con);
 #define equals(s1,s2) (strcmp(s1,s2) == 0)
 #define gdata(i) intarray(data.hei,data.gdataPVal,i)
 #define cdata(i,j) intmap(data.hei,data.cdataPVal,i,j)
@@ -111,7 +111,7 @@ char* chartrim(char *s, char g) {
 	return s;
 }
 
-char* getvalue(char *vp, char *key){
+const char* getvalue(char *vp, char *key){
 	char keyc[259];
 	strcpy(keyc, ";");
 	strcat(keyc, key);
@@ -743,7 +743,7 @@ double comparisonval(args data, char *target){
 	return atof(getvalue(strarray(data.hei, data.addtlvarPVal, referid), target));
 }
 
-char* strcomparisonstr(args data, char *target){
+const char* strcomparisonstr(args data, char *target){
 	if (strstr(target, "\"") == target) {
 		return chartrim(target, '"');
 	}
@@ -914,9 +914,9 @@ bool judgement(char condition[], args data){
 	}
 	trim(condition);
 
-	bool not = ((condition[0] == '!') ? true : false);
+	bool notflag = ((condition[0] == '!') ? true : false);
 	bool filterenable = (!equals(data.filter, "/none/"));
-	if (not) *condition++;
+	if (notflag) *condition++;
 	char *words[WORD_NUMBER_LIMIT];
 	int wordnumber = split(condition, " ", words, WORD_NUMBER_LIMIT);
 
