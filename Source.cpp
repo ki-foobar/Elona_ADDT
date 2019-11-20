@@ -1022,7 +1022,7 @@ bool judgement(char condition[], args data){
 					judge(cdata(30, 0) == atoi(words[1]));
 				}
 				if (wordnumber == 3){
-					if (equals(words[2], "-")){
+					if (equals(words[1], "-")){
 						judge(cdata(30, 0) <= atoi(words[2]));
 					}
 					else {
@@ -1051,7 +1051,7 @@ bool judgement(char condition[], args data){
 					judge(cdata(34, 0) == atoi(words[1]));
 				}
 				if (wordnumber == 3){
-					if (equals(words[2], "-")){
+					if (equals(words[1], "-")){
 						judge(cdata(34, 0) <= atoi(words[2]));
 					}
 					else {
@@ -1197,7 +1197,7 @@ bool judgement(char condition[], args data){
 				judge(cdata(30, data.unitid) == atoi(words[1]));
 			}
 			if (wordnumber == 3){
-				if (equals(words[2], "-")){
+				if (equals(words[1], "-")){
 					judge(cdata(30, data.unitid) <= atoi(words[2]));
 				}
 				else {
@@ -1261,7 +1261,7 @@ bool judgement(char condition[], args data){
 				judge(cdata(34, data.unitid) == atoi(words[1]));
 			}
 			if (wordnumber == 3){
-				if (equals(words[2], "-")){
+				if (equals(words[1], "-")){
 					judge(cdata(34, data.unitid) <= atoi(words[2]));
 				}
 				else {
@@ -1306,7 +1306,7 @@ bool judgement(char condition[], args data){
 				judge(200 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 299);
 			}
 			if (equals(words[1], "Love")){
-				judge(cdata(17, data.unitid) == 300);
+				judge(cdata(17, data.unitid) >= 300);
 			}
 			if (filterenable && strstr(data.filter, "/impression-value/") != NULL) return false;
 			if (wordnumber == 2){
@@ -1337,7 +1337,7 @@ bool judgement(char condition[], args data){
 				judge(cdata(49, 0) == atoi(words[1]));
 			}
 			if (wordnumber == 3){
-				if (equals(words[2], "-")){
+				if (equals(words[1], "-")){
 					judge(cdata(49, 0) <= atoi(words[2]));
 				}
 				else {
