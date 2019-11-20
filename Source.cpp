@@ -17,6 +17,8 @@
 #define mdata(i) intarray(data.hei,data.mdataPVal,i)
 #define cdatan(i,j) strmap(data.hei,data.cdatanPVal,i,j)
 #define rattach(dbl) rankflag ? rankattach(dbl) : (dbl)
+#define max(x, y) ((x) > (y) ? (x) : (y))
+#define min(x, y) ((x) < (y) ? (x) : (y))
 
 #include <stdio.h>
 #include <string.h>
@@ -114,8 +116,10 @@ char* chartrim(char *s, char g) {
 	return s;
 }
 
-/* キーに対応する値文字列を返す, キーが無ければ-1を返す  */
+/* キーに対応する値文字列を返す, キーが無ければ-1を返す
+   static charへのポインタを返すので連続で呼び出すと前回の文字列は破棄される */
 const char* getvalue(char *vp, char *key){
+	static char value[256];
 	char keyc[259];
 	strcpy(keyc, ";");
 	strcat(keyc, key);
@@ -125,8 +129,7 @@ const char* getvalue(char *vp, char *key){
 	int len = strlen(keyc);
 
 	if (s != NULL){
-		int vlen = search(s + len, ';');
-		char *value = (char*)malloc(vlen + 1);
+		int vlen = min(search(s + len, ';'), 255);
 		strncpy(value, s + len, vlen);
 		value[vlen] = '\0';
 		return value;
@@ -1842,6 +1845,7 @@ EXPORT int addt(HSPEXINFO *hei){
 	}
 
 	data.buff = strcpy(data.buff, builder);
+	free(builder);
 	return 0;
 }
 
