@@ -68,6 +68,7 @@ bool decimalonly(char *p){
 	}
 }
 
+/* 文字列両端から空白類文字を取り除く */
 void trim(char *s) {
 	int i, j;
 
@@ -81,6 +82,7 @@ void trim(char *s) {
 	}
 }
 
+/* 先頭からtabを取り除き、その数を返す */
 int removefs(char *s) {
 	int i = 0;
 	while (s[i] != '\0' && s[i] == '	') i++;
@@ -89,6 +91,7 @@ int removefs(char *s) {
 	return i;
 }
 
+/* buffにあるsの文字の位置を返す */
 int search(char *buff, char s){
 	char *index = buff;
 	while (index[0] != s && index[0] != '\0'){
@@ -111,6 +114,7 @@ char* chartrim(char *s, char g) {
 	return s;
 }
 
+/* キーに対応する値文字列を返す, キーが無ければ-1を返す  */
 const char* getvalue(char *vp, char *key){
 	char keyc[259];
 	strcpy(keyc, ";");
@@ -896,15 +900,20 @@ const char* strcomparisonstr(args data, char *target){
 		break;
 	}
 
-	if (!equals(getvalue(strarray(data.hei, data.addtlvarPVal, data.unitid), target), "")) {
-		return getvalue(strarray(data.hei, data.addtlvarPVal, data.unitid), target);
-	}
-	if (7 < strlen(target)) {
+	const char *value;
+	if (strstr(target, "global:") == target) {
 		target += 7;
-		if (!equals(getvalue(data.addtgvar, target), "")) {
-			return getvalue(data.addtgvar, target);
+		value = getvalue(data.addtgvar, target);
+		if (!equals(value, "")) {
+			return value;
+		}
+	} else {
+		value = getvalue(strarray(data.hei, data.addtlvarPVal, data.unitid), target);
+		if (!equals(value, "")) {
+			return value;
 		}
 	}
+
 	return "-1";
 }
 
@@ -1789,6 +1798,7 @@ EXPORT int addt(HSPEXINFO *hei){
 		nest = removefs(lines[i]);
 		if (lines[i][0] == '/' && lines[i][1] == '/') continue;
 		if ((lines[i][0] == '$') || ((lines[i][0] == '%') && (lines[i][1] == '$'))) {
+			/* 優先度 */
 			if (strstr(lines[i], "[") != NULL) {
 				char *rankc = strstr(lines[i], "[") + 6;
 				*strstr(lines[i], "]") = '\0';
@@ -1803,7 +1813,7 @@ EXPORT int addt(HSPEXINFO *hei){
 			if (lines[i][0] == '$') {
 				*lines[i]++;
 			}
-
+			/* 条件文の判定を行う */
 			if (rankmax <= rank){
 				if (slash(lines[i], data)){
 					nestlim = -2;
@@ -1815,7 +1825,7 @@ EXPORT int addt(HSPEXINFO *hei){
 			else {
 				nestlim = nest - 1;
 			}
-
+			/* 優先度が高いなら今まで一致した分を消す */
 			if (nestlim == -2 && rankmax < rank) {
 				rankmax = rank;
 				strcpy(builder, "\r\n"); // \r(改行コードCR部)を足す必要がある
