@@ -1,0 +1,366 @@
+line := nesting-marker comment
+      | nesting-marker condition
+      | nesting-marker plain-text
+
+nesting-marker := '\t'*
+
+condition := condition-markar whitespaces* condition-body whitespaces* priority?
+
+condition-body := or-expression-slash
+
+or-expression-slash := and-expression
+                     | or-expression-slash '/' and-expression
+
+and-expression := or-expression-vbar
+                | and-expression ',' or-expression-vbar
+
+or-expression-vbar := not-expression
+                    | or-expression-vbar ',' not-expression
+
+not-expression := not-flag? primary-expression
+
+primary-expression は space-separated なトークン列
+primary-expression := 'PCaction' pc-action-type
+                    | 'action' npc-action-type
+                    | 'PCcash' range-matcher
+                    | 'cash' range-matcher
+                    | 'PCclass' ( any+ | 'same' )
+                    | 'class' ( any+ | 'same' )
+                    | 'PCcondition' ailment-type
+                    | 'PCcondition' 'sleepiness' range-matcher
+                    | 'condition' ailment-type
+                    | 'PCfame' range-matcher
+                    | 'fame' range-matcher
+                    | 'PCrace' ( any+ | 'same' )
+                    | 'race' ( any+ | 'same' )
+                    | 'PCreligion' ( god-type | 'same' )
+                    | 'religion' ( god-type | 'same' )
+                    | 'PCsex' ( sex-type | 'same' )
+                    | 'sex' ( sex-type | 'same' )
+                    | 'karma' range-matcher
+                    | 'impression' impression-type
+                    | 'impression' range-matcher
+                    | 'agreement'
+                    | 'anorexia'
+                    | 'incognito'
+                    | 'layhand'
+                    | 'married'
+                    | 'pet'
+                    | 'ridden'
+                    | 'stethoscope'
+                    | 'tied'
+                    | 'when' 'year' range-matcher
+                    | 'when' 'month' closed-range-matcher
+                    | 'when' 'date' closed-range-matcher
+                    | 'when' 'hour' closed-range-matcher
+                    | 'when' 'time' time-matcher
+                    | 'when' when-type
+                    | 'where' where-type
+                    | 'where' 'floor' floor-matcher
+                    | 'weather' weather-type
+                    | 'true'
+                    | 'false'
+                    | 'random' integer
+                    | comparison-expression
+                    | strcomparison-expression
+
+comparison-expression := comparison-value comparison-operator comparison-value
+
+comparison-operator := '=='
+                     | '<=' | '=<'
+                     | '<'
+                     | '>=' | '=>'
+                     | '>'
+                     | '<*' floating // '<*' の後ろにスペースを入れてはならない
+                     | '>*' floating // 同上
+                     | '<+' floating // 同上
+                     | '>+' floating // 同上
+
+comparison-value := floating
+                  | 'PC'? comparison-value-type comparison-flag?
+                  | 'global:' addt-key
+                  | addt-key
+
+comparison-flag := 'P' | 'R' | 'E' | '+'
+
+comparison-value-type := skill-type
+                       | resistance-type
+                       | potential-rank-type
+                       | 'Age'
+                       | 'Fame'
+                       | 'Level'
+                       | 'Height'
+                       | 'Weight'
+                       | 'Hp'
+                       | 'MaxHp'
+                       | 'Mp'
+                       | 'MaxMp'
+                       | 'Sp'
+                       | 'MaxSp'
+                       | 'Sanity'
+                       | raw-elona-variable
+
+raw-elona-variable := 'cdata' integer  // 間にスペースを入れてはならない
+                    | 'ccdata' integer // 同上
+                    | 'csdata' integer // 同上
+                    | 'gdata' integer  // 同上
+                    | 'sdata' integer  // 同上
+                    | 'tcdata' integer // 同上
+                    | 'tsdata' integer // 同上
+
+
+strcomparison-expression := strcomparison-value strcomparison-operator strcomparison-value
+
+strcomparison-operator := 'equal' | 'instr'
+
+strcomparison-value := string
+                     | 'PC'? strcomparison-value-type // 'PC'の後ろにスペースを入れてはならない
+                     | 'global:' addt-key
+                     | addt-key
+
+strcomparison-value-type := 'Aka'
+                          | 'Age'
+                          | 'Class'
+                          | 'Cash'
+                          | 'Date'
+                          | 'Fame'
+                          | 'Height'
+                          | 'Hour'
+                          | 'Impression'
+                          | 'Karma'
+                          | 'Month'
+                          | 'Name'
+                          | 'Race'
+                          | 'Religion'
+                          | 'Weight'
+                          | 'Year'
+                          | 'nReligion'
+
+addt-key := any+
+
+skill-type := 'Alchemy'
+            | 'Anatomy'
+            | 'Axe'
+            | 'Blunt'
+            | 'Bow'
+            | 'Carpentry'
+            | 'Casting'
+            | 'Charm'
+            | 'Constitution'
+            | 'Control_Magic'
+            | 'Cooking'
+            | 'Crossbow'
+            | 'Detection'
+            | 'Dexterity'
+            | 'Disarm_Trap'
+            | 'Dual_Wield'
+            | 'Evasion'
+            | 'Eye_of_Mind'
+            | 'Faith'
+            | 'Firearm'
+            | 'Fishing'
+            | 'Gardening'
+            | 'Gene_engineer'
+            | 'Greater_Evasion'
+            | 'Healing'
+            | 'Heavy_Armor'
+            | 'Investing'
+            | 'Jeweler'
+            | 'Lack'
+            | 'Learning'
+            | 'Life'
+            | 'Light_Armor'
+            | 'Literacy'
+            | 'Lock_Picking'
+            | 'Long_Sword'
+            | 'Magic'
+            | 'Magic_Capacity'
+            | 'Magic_Device'
+            | 'Mana'
+            | 'Marksman'
+            | 'Martial_Arts'
+            | 'Meditation'
+            | 'Medium_Armor'
+            | 'Memorization'
+            | 'Mining'
+            | 'Negotiation'
+            | 'Perception'
+            | 'Performer'
+            | 'Pickpocket'
+            | 'Polearm'
+            | 'Riding'
+            | 'Scythe'
+            | 'Sense_Quality'
+            | 'Shield'
+            | 'Short_Sword'
+            | 'Speed'
+            | 'Stave'
+            | 'Stealth'
+            | 'Strength'
+            | 'Tactics'
+            | 'Tailoring'
+            | 'Throwing'
+            | 'Traveling'
+            | 'Two_Hand'
+            | 'Weight_Lifting'
+            | 'Willpower'
+
+resistance-type := 'chaos'
+                 | 'cold'
+                 | 'cut'
+                 | 'darkness'
+                 | 'fire'
+                 | 'lightning'
+                 | 'magic'
+                 | 'mind'
+                 | 'nerve'
+                 | 'nether'
+                 | 'poison'
+                 | 'sound'
+
+potential-rank-type := 'Superb' // これだけは先頭が大文字
+                     | 'great'
+                     | 'good'
+                     | 'bad'
+                     | 'hopeless'
+
+pc-action-type := 'Performance'
+                | 'Dig'
+                | 'Reading'
+                | 'Fishing'
+                | 'Harvesting'
+                | 'Search'
+                | 'Eat'
+
+npc-action-type := 'Performance'
+                 | 'Eat'
+
+ailment-type := 'Normal'
+              | 'Poisoned'
+              | 'Sleep'
+              | 'Blinded'
+              | 'Confused'
+              | 'Fear'
+              | 'Dim'
+              | 'Drunk'
+              | 'Bleeding'
+              | 'Wet'
+              | 'Insane'
+              | 'Sick'
+              | 'Fury'
+
+god-type := 'Eyth'
+          | 'Mani'
+          | 'Lulwy'
+          | 'Itzpalt'
+          | 'Ehekatl'
+          | 'Opatos'
+          | 'Jure'
+          | 'Kumiromi'
+
+sex-type := 'Male' | 'Female'
+
+impression-type := 'Foe'
+                 | 'Hate'
+                 | 'Annoying'
+                 | 'Normal'
+                 | 'Friend'
+                 | 'Fellow'
+                 | 'Soul_Mate'
+                 | 'Love'
+
+when-type := 'Midnight'
+           | 'Dawn'
+           | 'Morning'
+           | 'Noon'
+           | 'Dusk'
+           | 'Night'
+
+where-type := 'North_Tyris'
+            | 'Home'
+            | 'Party'
+            | 'Outskirts'
+            | 'Urban_Area'
+            | 'Crop'
+            | 'Town'
+            | 'Vernis'
+            | 'Port_Kapul'
+            | 'Yowyn'
+            | 'Derphy'
+            | 'Palmia'
+            | 'Lumiest'
+            | 'Noyel'
+            | 'Larna'
+            | 'Cyber_Dome'
+            | 'Pet_Arena'
+            | 'Truce_Ground'
+            | 'Graveyard'
+            | 'Embassy'
+            | 'Museum'
+            | 'Shop'
+            | 'Storage_House'
+            | 'Ranch'
+            | 'Shelter'
+            | 'Sister'
+            | 'Pyramid'
+            | 'Jail'
+            | 'Mountain_Pass'
+            | 'Wilderness'
+            | 'Show_House'
+            | 'Lesimas'
+            | 'Void'
+            | 'Nefia'
+
+weather-type := 'Sun'
+              | 'Rain'
+              | 'Snow'
+              | 'Hard_rain'
+              | 'Etherwind'
+
+range-matcher := integer
+               | '-' integer
+               | integer any
+               | integer any integer
+注: 通常は integer '-'、integer '-' integer という形で書かれるが、'-' の部分は一致を確認しないので1文字ならなんでもいい
+    ただし、'-' integer の場合のみ '-' との一致が要求されるので注意
+
+range-matcher から一方の端が無限大(負の無限大)であるような半開区間を除いたもの
+closed-range-matcher := integer
+                      | integer any integer
+
+floor-matcher := floor
+               | '-' floor
+               | floor any
+               | floor any floor
+range-matcher の integer を floor に変えたもの
+
+floor := integer
+       | 'B' integer
+
+time-matcher := time-of-day
+              | time-of-day any time-of-day
+注: 通常は time-of-day '-' time-of-day という形で書かれるが、'-' の部分は一致を確認しないので1文字ならなんでもいい
+
+time-of-day := digit ':' digit
+
+not-flag := '!'
+
+priority := '[' any any any any any integer ']'
+注: 通常は [rank 1] という形で書かれるが、"rank " の部分は一致を確認しないので5文字ならなんでもいい
+
+condition-markar := '$' | '%$'
+
+comment := '//' plain-text
+
+plain-text := any+
+
+integer := atoi が受け付ける任意の数字
+
+floating := atof が受け付ける任意の数字
+
+string := '"' で挟まれた任意の文字列
+注: エスケープシーケンスは認識しない。'"' をエスケープする方法もない
+
+digit := [0-9]
+
+any := 任意の1文字
