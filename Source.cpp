@@ -7,12 +7,12 @@
 
 #define equals(s1,s2) (strcmp(s1,s2) == 0)
 
-#define gdata(i) intarray(data.hei,data.gdataPVal,i)
-#define cdata(i,j) intmap(data.hei,data.cdataPVal,i,j)
-#define adata(i,j) intmap(data.hei,data.adataPVal,i,j)
-#define sdata(i,j) intmap(data.hei,data.sdataPVal,i,j)
-#define mdata(i) intarray(data.hei,data.mdataPVal,i)
-#define cdatan(i,j) strmap(data.hei,data.cdatanPVal,i,j)
+#define gdata(i) intarray(pr->data->hei,pr->data->gdataPVal,i)
+#define cdata(i,j) intmap(pr->data->hei,pr->data->cdataPVal,i,j)
+#define adata(i,j) intmap(pr->data->hei,pr->data->adataPVal,i,j)
+#define sdata(i,j) intmap(pr->data->hei,pr->data->sdataPVal,i,j)
+#define mdata(i) intarray(pr->data->hei,pr->data->mdataPVal,i)
+#define cdatan(i,j) strmap(pr->data->hei,pr->data->cdatanPVal,i,j)
 #define rattach(dbl) rankflag ? rankattach(dbl) : (dbl)
 #define max(x, y) ((x) > (y) ? (x) : (y))
 #define min(x, y) ((x) < (y) ? (x) : (y))
@@ -253,10 +253,7 @@ bool Parser_parse_one_token_of(Parser *pr, Token *parse_result, TokenType token_
 	return Parser_parse_one_token(pr, &parse_result) && parse_result->type == token_type;
 }
 
-bool Parser_parse_integer(
-		Parser *pr,
-		IntComparisonValue *parse_result,
-		bool accept_floor_notation) {
+bool Parser_parse_integer(Parser *pr, int *parse_result, bool accept_floor_notation) {
 	int sign = 1;
 	if (*pr->str == 'B') {
 		if (!accept_floor_notation)
@@ -271,6 +268,15 @@ bool Parser_parse_integer(
 		return false;
 
 	*parse_result = sign * atoi(tok.str);
+	return true;
+}
+
+bool Parser_parse_floating(Parser *pr, double *parse_result) {
+	Token tok;
+	if (!Parser_parse_one_token_of(pr, &tok, TOKEN_TYPE_INTEGER))
+		return false;
+
+	*parse_result = atof(tok.str);
 	return true;
 }
 
@@ -327,7 +333,7 @@ bool Parser_parse_range_matcher_internal(
 			return false;
 
 		if (value1 < value0) {
-			IntComparisonValue tmp = value0;
+			int tmp = value0;
 			value0 = value1;
 			value1 = tmp;
 		}
@@ -443,7 +449,7 @@ bool Parser_parse_time_range_matcher(Parser *pr, RangeMatcher *parse_result) {
 		return false;
 
 	if (value1 < value0) {
-		IntComparisonValue tmp = value0;
+		int tmp = value0;
 		value0 = value1;
 		value1 = tmp;
 	}
@@ -471,31 +477,95 @@ bool Parser_parse_intcomparison_value(Parser *pr, IntComparisonValue *parse_resu
 }
 
 bool Parser_parse_intcomparison_operator(Parser *pr, IntComparisonOperator *parse_result) {
-	// TODO
-	/*
-	if (equals(words[2], "==")) {
-		return comparisonval(data, words[1]) == comparisonval(data, words[3]);
-	if (equals(words[2], "<=") || equals(words[2], "=<")) {
-		return comparisonval(data, words[1]) <= comparisonval(data, words[3]);
-	if (equals(words[2], "<")) {
-		return comparisonval(data, words[1]) < comparisonval(data, words[3]);
-	if (equals(words[2], ">=") || equals(words[2], "=>")) {
-		return comparisonval(data, words[1]) >= comparisonval(data, words[3]);
-	if (equals(words[2], ">")) {
-		return comparisonval(data, words[1]) > comparisonval(data, words[3]);
-	if (strstr(words[2], "<*") == words[2]) {
-		words[2] += 2;
-		return comparisonval(data, words[1]) * atof(words[2]) <= comparisonval(data, words[3]);
-	if (strstr(words[2], ">*") == words[2]) {
-		words[2] += 2;
-		return comparisonval(data, words[1]) >= comparisonval(data, words[3]) * atof(words[2]);
-	if (strstr(words[2], "<+") == words[2]) {
-		words[2] += 2;
-		return comparisonval(data, words[1]) + atof(words[2]) <= comparisonval(data, words[3]);
-	if (strstr(words[2], ">+") == words[2]) {
-		words[2] += 2;
-		return comparisonval(data, words[1]) >= comparisonval(data, words[3]) + atof(words[2]);
-	*/
+	Parser_skip_whitespaces(pr);
+
+	switch (*pr->str) {
+	case '=':
+		++pr->str;
+		switch (*pr->str) {
+		case '='
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_EQ;
+			return true;
+		case '<'
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_LE;
+			return true;
+		case '>'
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_GE;
+			return true;
+		default:
+			return false;
+		}
+	case '<':
+		++pr->str;
+		switch (*pr->str) {
+		case '='
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_LE;
+			return true;
+		case '*'
+			++pr->str;
+			Parser_skip_whitespaces(pr);
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_LE_MUL;
+			{
+				IntComparisonValue value;
+				if (!Parser_parse_floating(pr, &value))
+					return false;
+				parse_result->extra = value;
+			}
+			return true;
+		case '+'
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_LE_ADD;
+			{
+				IntComparisonValue value;
+				if (!Parser_parse_floating(pr, &value))
+					return false;
+				parse_result->extra = value;
+			}
+			return true;
+		default:
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_LT;
+			return true;
+		}
+	case '>':
+		++pr->str;
+		switch (*pr->str) {
+		case '='
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_GE;
+			return true;
+		case '*'
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_GE_MUL;
+			{
+				IntComparisonValue value;
+				if (!Parser_parse_floating(pr, &value))
+					return false;
+				parse_result->extra = value;
+			}
+			return true;
+		case '+'
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_GE_ADD;
+			{
+				IntComparisonValue value;
+				if (!Parser_parse_floating(pr, &value))
+					return false;
+				parse_result->extra = value;
+			}
+			return true;
+		default:
+			++pr->str;
+			parse_result->type = INTCOMPARISON_OPERATOR_TYPE_GT;
+			return true;
+		}
+	default:
+		return false;
+	}
 }
 
 bool IntComparisonValue_compares(IntComparisonValue lhs, IntComparisonValue rhs, const IntComparisonOperator *op) {
@@ -1411,7 +1481,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return equals(cdatan(3, data.unitid), cdatan(3, 0));
+					return equals(cdatan(3, pr->data->unitid), cdatan(3, 0));
 				} else {
 					return Token_equals(&arg_0, cdatan(3, 0));
 				}
@@ -1433,7 +1503,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return cdata(61, data.unitid) == cdata(61, 0);
+					return cdata(61, pr->data->unitid) == cdata(61, 0);
 				}
 				if (Token_equals_literal(&arg_0, "Eyth")) {
 					return cdata(61, 0) == 0;
@@ -1467,7 +1537,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return equals(cdatan(2, data.unitid), cdatan(2, 0));
+					return equals(cdatan(2, pr->data->unitid), cdatan(2, 0));
 				} else {
 					return Token_equals(&arg_0, cdatan(2, 0));
 				}
@@ -1480,7 +1550,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return cdata(8, data.unitid) == cdata(8, 0);
+					return cdata(8, pr->data->unitid) == cdata(8, 0);
 				}
 				if (Token_equals_literal(&arg_0, "Male")) {
 					return cdata(8, 0) == 0;
@@ -1502,18 +1572,18 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "Performance")) {
-				return cdata(140, data.unitid) == 6;
+				return cdata(140, pr->data->unitid) == 6;
 			}
 			if (Token_equals_literal(&arg_0, "Eat")) {
-				return cdata(140, data.unitid) == 1;
+				return cdata(140, pr->data->unitid) == 1;
 			}
 			return false;
 		}
 		if (Token_equals_literal(&tok, "agreement")) {
-			return cbit(data, data.unitid, 969);
+			return cbit(data, pr->data->unitid, 969);
 		}
 		if (Token_equals_literal(&tok, "anorexia")) {
-			return cbit(data, data.unitid, 986);
+			return cbit(data, pr->data->unitid, 986);
 		}
 		break;
 	case 'c':
@@ -1523,46 +1593,58 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "Normal")) {
-				return cdata(250, data.unitid) == 0 && cdata(251, data.unitid) == 0 && cdata(252, data.unitid) == 0 && cdata(253, data.unitid) == 0 && cdata(254, data.unitid) == 0 && cdata(255, data.unitid) == 0 && cdata(256, data.unitid) == 0 && cdata(257, data.unitid) == 0 && cdata(258, data.unitid) == 0 && cdata(259, data.unitid) == 0 && cdata(260, data.unitid) == 0 && cdata(261, data.unitid) == 0 && cdata(264, data.unitid) == 0;
+				return cdata(250, pr->data->unitid) == 0 &&
+					cdata(251, pr->data->unitid) == 0 &&
+					cdata(252, pr->data->unitid) == 0 &&
+					cdata(253, pr->data->unitid) == 0 &&
+					cdata(254, pr->data->unitid) == 0 &&
+					cdata(255, pr->data->unitid) == 0 &&
+					cdata(256, pr->data->unitid) == 0 &&
+					cdata(257, pr->data->unitid) == 0 &&
+					cdata(258, pr->data->unitid) == 0 &&
+					cdata(259, pr->data->unitid) == 0 &&
+					cdata(260, pr->data->unitid) == 0 &&
+					cdata(261, pr->data->unitid) == 0 &&
+					cdata(264, pr->data->unitid) == 0;
 			}
 			if (Token_equals_literal(&arg_0, "Poisoned")) {
-				return 0 < cdata(250, data.unitid);
+				return 0 < cdata(250, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Sleep")) {
-				return 0 < cdata(251, data.unitid);
+				return 0 < cdata(251, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Paralyzed")) {
-				return 0 < cdata(252, data.unitid);
+				return 0 < cdata(252, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Blinded")) {
-				return 0 < cdata(253, data.unitid);
+				return 0 < cdata(253, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Confused")) {
-				return 0 < cdata(254, data.unitid);
+				return 0 < cdata(254, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Fear")) {
-				return 0 < cdata(255, data.unitid);
+				return 0 < cdata(255, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Dim")) {
-				return 0 < cdata(256, data.unitid);
+				return 0 < cdata(256, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Drunk")) {
-				return 0 < cdata(257, data.unitid);
+				return 0 < cdata(257, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Bleeding")) {
-				return 0 < cdata(258, data.unitid);
+				return 0 < cdata(258, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Wet")) {
-				return 0 < cdata(259, data.unitid);
+				return 0 < cdata(259, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Insane")) {
-				return 0 < cdata(260, data.unitid);
+				return 0 < cdata(260, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Sick")) {
-				return 0 < cdata(261, data.unitid);
+				return 0 < cdata(261, pr->data->unitid);
 			}
 			if (Token_equals_literal(&arg_0, "Fury")) {
-				return 0 < cdata(264, data.unitid);
+				return 0 < cdata(264, pr->data->unitid);
 			}
 		}
 		if (Token_equals_literal(&tok, "cash")) {
@@ -1570,7 +1652,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			if (!Parser_parse_range_matcher(pr, &rm))
 				return false;
 
-			return RangeMatcher_compares(&rm, cdata(30, data.unitid));
+			return RangeMatcher_compares(&rm, cdata(30, pr->data->unitid));
 		}
 		if (Token_equals_literal(&tok, "class")) {
 			Token arg_0;
@@ -1578,10 +1660,10 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "same")) {
-				return equals(cdatan(3, data.unitid), cdatan(3, 0));
+				return equals(cdatan(3, pr->data->unitid), cdatan(3, 0));
 			}
 			else {
-				return Token_equals(&arg_0, cdatan(3, data.unitid));
+				return Token_equals(&arg_0, cdatan(3, pr->data->unitid));
 			}
 		}
 		if (Token_equals_literal(&tok, "comparison")) {
@@ -1606,7 +1688,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			if (!Parser_parse_range_matcher(pr, &rm))
 				return false;
 
-			return RangeMatcher_compares(&rm, cdata(34, data.unitid));
+			return RangeMatcher_compares(&rm, cdata(34, pr->data->unitid));
 		}
 		if (Token_equals_literal(&tok, "false")) {
 			return false;
@@ -1617,7 +1699,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			RangeMatcher rm = Parser_parse_range_matcher(pr);
 			if (rm.type != RANGE_MATCHER_TYPE_ERROR) {
 
-				return RangeMatcher_compares(&rm, cdata(17, data.unitid));
+				return RangeMatcher_compares(&rm, cdata(17, pr->data->unitid));
 			}
 
 			Token arg_0;
@@ -1625,36 +1707,36 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "Foe")) {
-				return cdata(17, data.unitid) <= 9;
+				return cdata(17, pr->data->unitid) <= 9;
 			}
 			if (Token_equals_literal(&arg_0, "Hate")) {
-				return 10 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 24;
+				return 10 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 24;
 			}
 			if (Token_equals_literal(&arg_0, "Annoying")) {
-				return 25 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 39;
+				return 25 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 39;
 			}
 			if (Token_equals_literal(&arg_0, "Normal")) {
-				return 40 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 74;
+				return 40 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 74;
 			}
 			if (Token_equals_literal(&arg_0, "Amiable")) {
-				return 75 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 99;
+				return 75 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 99;
 			}
 			if (Token_equals_literal(&arg_0, "Friend")) {
-				return 100 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 149;
+				return 100 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 149;
 			}
 			if (Token_equals_literal(&arg_0, "Fellow")) {
-				return 150 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 199;
+				return 150 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 199;
 			}
 			if (Token_equals_literal(&arg_0, "Soul_Mate")) {
-				return 200 <= cdata(17, data.unitid) && cdata(17, data.unitid) <= 299;
+				return 200 <= cdata(17, pr->data->unitid) && cdata(17, pr->data->unitid) <= 299;
 			}
 			if (Token_equals_literal(&arg_0, "Love")) {
-				return cdata(17, data.unitid) >= 300;
+				return cdata(17, pr->data->unitid) >= 300;
 			}
 			return false;
 		}
 		if (Token_equals_literal(&tok, "incognito")) {
-			return cbit(data, data.unitid, 16);
+			return cbit(data, pr->data->unitid, 16);
 		}
 		break;
 	case 'k':
@@ -1668,17 +1750,17 @@ bool Parser_parse_primary_expression(Parser *pr) {
 		break;
 	case 'l':
 		if (Token_equals_literal(&tok, "layhand")) {
-			return cbit(data, data.unitid, 974);
+			return cbit(data, pr->data->unitid, 974);
 		}
 		break;
 	case 'm':
 		if (Token_equals_literal(&tok, "married")) {
-			return cbit(data, data.unitid, 961);
+			return cbit(data, pr->data->unitid, 961);
 		}
 		break;
 	case 'p':
 		if (Token_equals_literal(&tok, "pet")) {
-			return cdata(9, data.unitid) == 10;
+			return cdata(9, pr->data->unitid) == 10;
 		}
 		break;
 	case 'r':
@@ -1687,31 +1769,31 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			if (!Parser_parse_one_identifier(pr, &arg_0, TOKEN_TYPE_IDENTIFIER))
 				return false;
 			if (Token_equals_literal(&arg_0, "same")) {
-				return cdata(61, data.unitid) == cdata(61, 0);
+				return cdata(61, pr->data->unitid) == cdata(61, 0);
 			}
 			if (Token_equals_literal(&arg_0, "Eyth")) {
-				return cdata(61, data.unitid) == 0;
+				return cdata(61, pr->data->unitid) == 0;
 			}
 			if (Token_equals_literal(&arg_0, "Mani")) {
-				return cdata(61, data.unitid) == 1;
+				return cdata(61, pr->data->unitid) == 1;
 			}
 			if (Token_equals_literal(&arg_0, "Lulwy")) {
-				return cdata(61, data.unitid) == 2;
+				return cdata(61, pr->data->unitid) == 2;
 			}
 			if (Token_equals_literal(&arg_0, "Itzpalt")) {
-				return cdata(61, data.unitid) == 3;
+				return cdata(61, pr->data->unitid) == 3;
 			}
 			if (Token_equals_literal(&arg_0, "Ehekatl")) {
-				return cdata(61, data.unitid) == 4;
+				return cdata(61, pr->data->unitid) == 4;
 			}
 			if (Token_equals_literal(&arg_0, "Opatos")) {
-				return cdata(61, data.unitid) == 5;
+				return cdata(61, pr->data->unitid) == 5;
 			}
 			if (Token_equals_literal(&arg_0, "Jure")) {
-				return cdata(61, data.unitid) == 6;
+				return cdata(61, pr->data->unitid) == 6;
 			}
 			if (Token_equals_literal(&arg_0, "Kumiromi")) {
-				return cdata(61, data.unitid) == 7;
+				return cdata(61, pr->data->unitid) == 7;
 			}
 			return false;
 		}
@@ -1721,10 +1803,10 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "same")) {
-				return equals(cdatan(2, data.unitid), cdatan(2, 0));
+				return equals(cdatan(2, pr->data->unitid), cdatan(2, 0));
 			}
 			else {
-				return Token_equals(&arg_0, cdatan(2, data.unitid));
+				return Token_equals(&arg_0, cdatan(2, pr->data->unitid));
 			}
 		}
 		if (Token_equals_literal(&tok, "random")) {
@@ -1736,7 +1818,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return rand() % 100 < atoi(tok.str);
 		}
 		if (Token_equals_literal(&tok, "ridden")) {
-			return cbit(data, data.unitid, 975);
+			return cbit(data, pr->data->unitid, 975);
 		}
 		break;
 	case 's':
@@ -1746,18 +1828,18 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "same")) {
-				return cdata(8, data.unitid) == cdata(8, 0);
+				return cdata(8, pr->data->unitid) == cdata(8, 0);
 			}
 			if (Token_equals_literal(&arg_0, "Male")) {
-				return cdata(8, data.unitid) == 0;
+				return cdata(8, pr->data->unitid) == 0;
 			}
 			if (Token_equals_literal(&arg_0, "Female")) {
-				return cdata(8, data.unitid) == 1;
+				return cdata(8, pr->data->unitid) == 1;
 			}
 			return false;
 		}
 		if (Token_equals_literal(&tok, "stethoscope")) {
-			return cbit(data, data.unitid, 966);
+			return cbit(data, pr->data->unitid, 966);
 		}
 		if (Token_equals_literal(&tok, "strcomparison")) {
 			StrComparisonValue lhs;
@@ -1783,7 +1865,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 		break;
 	case 't':
 		if (Token_equals_literal(&tok, "tied")) {
-			return cbit(data, data.unitid, 968);
+			return cbit(data, pr->data->unitid, 968);
 		}
 		if (Token_equals_literal(&tok, "true")) {
 			return true;
