@@ -71,7 +71,6 @@ typedef enum {
 	RANGE_MATCHER_TYPE_LESS,
 	RANGE_MATCHER_TYPE_GREATER,
 	RANGE_MATCHER_TYPE_BETWEEN,
-	RANGE_MATCHER_TYPE_OUT_OF_RANGE,
 } RangeMatcherType;
 
 typedef struct {
@@ -79,6 +78,12 @@ typedef struct {
 	int value0;
 	int value1;
 } RangeMatcher;
+
+const bool RANGE_MATCHER_PARSE_MODE_ACCEPT_OPEN_RANGE = true;
+const bool RANGE_MATCHER_PARSE_MODE_DENY_OPEN_RANGE = false;
+
+const bool RANGE_MATCHER_PARSE_MODE_ACCEPT_FLOOR_NOTATION = true;
+const bool RANGE_MATCHER_PARSE_MODE_DENY_FLOOR_NOTATION = false;
 
 typedef IntComparisonValue double;
 
@@ -98,6 +103,11 @@ typedef struct {
 	IntComparisonOperatorType type;
 	IntComparisonValue extra;
 } IntComparisonOperator;
+
+typedef struct {
+    char* str;
+    size_t len;
+} StrComparisonValue;
 
 int split(char *str, const char *delim, char *outlist[], int limit) {
 	char    *tk;
@@ -207,31 +217,59 @@ bool Parser_parse_one_token_of(Parser *pr, Token *parse_result, TokenType token_
 	return Parser_parse_one_token(pr, &parse_result) && parse_result->type == token_type;
 }
 
+bool Parser_parse_integer(
+		Parser *pr,
+		IntComparisonValue *parse_result,
+		bool accept_floor_notation) {
+	int sign = 1;
+	if (*pr->str == 'B') {
+		if (!accept_floor_notation)
+			return false;
+
+		sign = -1;
+		++pr->str;
+	}
+
+	Token tok;
+	if (!Parser_parse_one_token_of(pr, &tok, TOKEN_TYPE_INTEGER))
+		return false;
+
+	*parse_result = sign * atoi(tok.str);
+	return true;
+}
+
 /**
- * 1) n
- * 2) - n
- * 3) n -
- * 4) n - m
+ * 1) n       (closed)
+ * 2) - n     (open)
+ * 3) n -     (open)
+ * 4) n - m   (closed)
  */
-bool Parser_parse_range_matcher(Parser *pr, RangeMatcher *parse_result) {
+bool Parser_parse_range_matcher_internal(
+		Parser *pr,
+		RangeMatcher *parse_result,
+		bool accept_open_range,
+		bool accept_floor_notation) {
 	Parser_skip_whitespaces(pr);
 
 	// 2) - n
 	if (*pr->str == '-' && !isnum(pr->str[1])) {
+		if (!accept_open_range)
+			return false;
+
 		++pr->str;
 		Parser_skip_whitespaces(pr);
 
-		Token value0;
-		if (!Parser_parse_one_token_of(pr, &value0, TOKEN_TYPE_INTEGER))
+		int value0;
+		if (!Parser_parse_integer(pr, &value0, accept_floor_notation))
 			return false;
 
 		parse_result->type = RANGE_MATCHER_TYPE_LESS;
-		parse_result->value0 = atoi(value0.str);
+		parse_result->value0 = value0;
 		return true;
 	}
 
-	Token value0;
-	if (!Parser_parse_one_token_of(pr, &value0, TOKEN_TYPE_INTEGER))
+	int value0;
+	if (!Parser_parse_integer(pr, &value0, accept_floor_notation))
 		return false;
 
 	Parser_skip_whitespaces(pr);
@@ -239,7 +277,7 @@ bool Parser_parse_range_matcher(Parser *pr, RangeMatcher *parse_result) {
 	// 1) n
 	if (*pr->str != '-') {
 		parse_result->type = RANGE_MATCHER_TYPE_EXACT;
-		parse_result->value0 = atoi(value0.str);
+		parse_result->value0 = value0;
 		return true;
 	}
 
@@ -248,85 +286,136 @@ bool Parser_parse_range_matcher(Parser *pr, RangeMatcher *parse_result) {
 
 	// 4) n - m
 	if (*pr->str == '+' || *pr->str == '-' || isnum(*pr->str)) {
-		Token value1;
-		if (!Parser_parse_one_token_of(pr, &value1, TOKEN_TYPE_INTEGER))
+		int value1;
+		if (!Parser_parse_integer(pr, &value1, accept_floor_notation))
 			return false;
 
+		if (value1 < value0) {
+			IntComparisonValue tmp = value0;
+			value0 = value1;
+			value1 = tmp;
+		}
+
 		parse_result->type = RANGE_MATCHER_TYPE_BETWEEN;
-		parse_result->value0 = atoi(value0.str);
-		parse_result->value1 = atoi(value1.str);
+		parse_result->value0 = value0;
+		parse_result->value1 = value1;
 		return true;
 	}
 
     // 3) n -
+	if (!accept_open_range)
+		return false;
+
 	parse_result->type = RANGE_MATCHER_TYPE_GREATER;
-	parse_result->value0 = atoi(value0.str);
+	parse_result->value0 = value0;
 	return true;
 }
 
+/**
+ * 1) n
+ * 2) - n
+ * 3) n -
+ * 4) n - m
+ */
+bool Parser_parse_range_matcher(Parser *pr, RangeMatcher *parse_result) {
+	return Parser_parse_range_matcher_internal(
+		pr,
+		parse_result,
+		RANGE_MATCHER_PARSE_MODE_ACCEPT_OPEN_RANGE,
+		RANGE_MATCHER_PARSE_MODE_DENY_FLOOR_NOTATION);
+}
+
+/**
+ * 1) n
+ * 4) n - m
+ */
 bool Parser_parse_closed_range_matcher(Parser *pr, RangeMatcher *parse_result) {
-	Parser_skip_whitespaces(pr);
-
-	RangeMatcher rm;
-	rm.str = s;
-	rm.len = 0;
-	rm.param0 = 0;
-	rm.param1 = 0;
-
-	// TODO
-	if (*s == '-') {
-		++s;
-	}
+	return Parser_parse_range_matcher_internal(
+		pr,
+		parse_result,
+		RANGE_MATCHER_PARSE_MODE_DENY_OPEN_RANGE,
+		RANGE_MATCHER_PARSE_MODE_DENY_FLOOR_NOTATION);
 }
 
+/**
+ * 1) n       (closed)
+ * 2) - n     (open)
+ * 3) n -     (open)
+ * 4) n - m   (closed)
+ */
 bool Parser_parse_floor_range_matcher(Parser *pr, RangeMatcher *parse_result) {
-	Parser_skip_whitespaces(pr);
-
-	RangeMatcher rm;
-	rm.str = s;
-	rm.len = 0;
-	rm.param0 = 0;
-	rm.param1 = 0;
-
-	// TODO
-	if (*s == '-') {
-		++s;
-	}
-	if (wordnumber == 3) {
-		if (words[2][0] == 'B') words[2][0] = '-';
-		return atoi(words[2]) == floor;
-	}
-	if (wordnumber == 4) {
-		if (equals(words[3], "-")) {
-			if (words[2][0] == 'B') words[2][0] = '-';
-			return atoi(words[2]) <= floor;
-		}
-		if (equals(words[2], "-")) {
-			if (words[3][0] == 'B') words[3][0] = '-';
-			return floor <= atoi(words[3]);
-		}
-	}
-	if (wordnumber == 5) {
-		if (words[2][0] == 'B') words[2][0] = '-';
-		if (words[4][0] == 'B') words[4][0] = '-';
-		return atoi(words[2]) <= floor && floor <= atoi(words[4]);
-	}
+	return Parser_parse_range_matcher_internal(
+		pr,
+		parse_result,
+		RANGE_MATCHER_PARSE_MODE_ACCEPT_OPEN_RANGE,
+		RANGE_MATCHER_PARSE_MODE_ACCEPT_FLOOR_NOTATION);
 }
 
+bool Parser_parse_time(Parser *pr, int *parse_result) {
+	// Time needs 5 characters, e.g., "00:00".
+	for (size_t i = 0; i < 5; ++i) {
+		if (!ptr->str[i]) {
+			return false;
+		}
+	}
+
+	const char h1 = ptr->str[0];
+	const char h2 = ptr->str[1];
+	const char colon = ptr->str[2];
+	const char m1 = ptr->str[3];
+	const char m2 = ptr->str[4];
+	ptr->str += 5;
+
+	if (!isnum(h1) || !isnum(h2) || colon != ':' || !isnum(m1) || !isnum(m2))
+		return false;
+
+	const auto h = 10 * (h1 - '0') + (h2 - '0');
+	const auto m = 10 * (m1 - '0') + (m2 - '0');
+
+	if (h < 0 || 23 < h || m < 0 || 59 < m)
+		return false;
+
+	*parse_result = 60 * h + m;
+}
+
+/**
+ * 1) n       (closed)
+ * 2) n - m   (closed)
+ */
 bool Parser_parse_time_range_matcher(Parser *pr, RangeMatcher *parse_result) {
 	Parser_skip_whitespaces(pr);
 
-	RangeMatcher rm;
-	rm.str = s;
-	rm.len = 0;
-	rm.param0 = 0;
-	rm.param1 = 0;
+	int value0;
+	if (!Parser_parse_time(pr, value0))
+		return false;
 
-	// TODO
-	if (*s == '-') {
-		++s;
+	Parser_skip_whitespaces(pr);
+
+	// 1) n
+	if (*pr->str != '-') {
+		parse_result->type = RANGE_MATCHER_TYPE_EXACT;
+		parse_result->value0 = value0;
+		return true;
 	}
-	// lhs - rhs で rhs > lhs のとき、exclude
+
+	++pr->str; // skip '-'
+	Parser_skip_whitespaces(pr);
+
+	// 2) n - m
+	int value1;
+	if (!Parser_parse_time(pr, &value1))
+		return false;
+
+	if (value1 < value0) {
+		IntComparisonValue tmp = value0;
+		value0 = value1;
+		value1 = tmp;
+	}
+
+	parse_result->type = RANGE_MATCHER_TYPE_BETWEEN;
+	parse_result->value0 = value0;
+	parse_result->value1 = value1;
+	return true;
 }
 
 bool RangeMatcher_compares(const RangeMatcher *rm, int value) {
@@ -337,7 +426,6 @@ bool RangeMatcher_compares(const RangeMatcher *rm, int value) {
 	case RANGE_MATCHER_TYPE_LESS:          return value <= rm->value0;
 	case RANGE_MATCHER_TYPE_GREATER:       return value >= rm->value0;
 	case RANGE_MATCHER_TYPE_BETWEEN:       return rm->value0 <= value && value <= rm->value1;
-	case RANGE_MATCHER_TYPE_OUT_OF_RANGE: return value < rm->value0 && rm->value1 < value;
 	default: return false;
 	}
 }
@@ -394,11 +482,36 @@ StrComparisonValue Parser_parse_strcomparison_value(Parser *pr) {
 }
 
 bool StrComparisonValue_equals(const StrComparisonValue *lhs, const StrComparisonValue *rhs) {
-	// TODO
+	const size_t L = lhs->len, R = rhs->len;
+
+	if (L != R)
+		return false;
+
+	for (size_t i = 0; i < L; ++i) {
+		if (lhs->str[i] != rhs->str[i]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 bool StrComparisonValue_contains(const StrComparisonValue *lhs, const StrComparisonValue *rhs) {
-	// TODO
+	const size_t L = lhs->len, R = rhs->len;
+
+	if (L < R)
+		return false;
+
+	for (size_t start = 0; start <= L - R; ++start) {
+		for (size_t i = 0; i < R; ++i) {
+			if (lhs->str[i + start] != rhs->str[i]) {
+				goto continue_outer_for;
+			}
+		}
+		return true;
+continue_outer_for:
+	}
+
+	return false;
 }
 
 /* キーに対応する値文字列を返す, キーが無ければ-1を返す
