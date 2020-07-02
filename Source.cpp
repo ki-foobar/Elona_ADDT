@@ -19,7 +19,34 @@
 
 
 // 'strlen(string_literal)' is surely expected to be calculated in compile time.
-#define Token_equals_literal(token, string_literal) Token_equals_with_length((token), (string_literal), strlen(string_literal))
+#define Token_equals_literal(token, string_literal) \
+	Token_equals_with_length((token), (string_literal), strlen(string_literal))
+
+#define Token_starts_with_literal(token, string_literal) \
+	Token_starts_with_with_length((token), (string_literal), strlen(string_literal))
+
+
+#define StrComparisonValue_set_integer(strcomparisonvalue, value) \
+	do { \
+		sprintf(static_buffer, "%d", (value)); \
+		parse_result->str = static_buffer; \
+		parse_result->len = strlen(static_buffer); \
+	} while (0)
+
+#define StrComparisonValue_set_string(strcomparisonvalue, value) \
+	do { \
+		const char *tmp = (value); \
+		(strcomparisonvalue)->str = (tmp); \
+		(strcomparisonvalue)->len = strlen(tmp); \
+	} while (0)
+
+#define StrComparisonValue_set_string_literal(strcomparisonvalue, value) \
+	do { \
+		(strcomparisonvalue)->str = (value); \
+		(strcomparisonvalue)->len = strlen(value); \
+	} while (0)
+
+
 
 #include <stdio.h>
 #include <string.h>
@@ -167,16 +194,25 @@ char* chartrim(char *s, char g) {
 }
 
 bool Token_equals_with_length(const Token *tok, const char *s, size_t s_len) {
-	// assert(tok);
-	// assert(tok->type == TOKEN_TYPE_IDENTIFIER);
 	if (tok->len != s_len)
 		return false;
 
-	return strncmp(tok->str, s, s_len);
+	return strncmp(tok->str, s, s_len) == 0;
 }
 
 bool Token_equals(const Token *tok, const char *s) {
 	return Token_equals_with_length(tok, s, strlen(s));
+}
+
+bool Token_starts_with_with_length(const Token *tok, const char *s, size_t s_len) {
+	if (tok->len < s_len)
+		return false;
+
+	return strncmp(tok->str, s, s_len) == 0;
+}
+
+bool Token_starts_with(const Token *tok, const char *s) {
+	return Token_starts_with_with_length(tok, s, strlen(s));
 }
 
 bool Parser_parse_one_token(Parser *pr, Token *parse_result) {
@@ -477,8 +513,198 @@ bool IntComparisonValue_compares(IntComparisonValue lhs, IntComparisonValue rhs,
 	}
 }
 
-StrComparisonValue Parser_parse_strcomparison_value(Parser *pr) {
-	// TODO
+bool Parser_parse_strcomparison_value(Parser *pr, StrComparisonValue *parse_result) {
+	static char static_buffer[32];
+
+	Parser_skip_whitespaces(pr);
+
+	if (*pr->str == '"') {
+		// TODO string literal
+		return true;
+	}
+
+	Token tok;
+	if (!Parser_parse_one_token_of(pr, &tok, TOKEN_TYPE_IDENTIFIER))
+		return false;
+
+	int chara_id = pr->data->unitid;
+	if (tok.len >= 3 && (tok.str[0] == 'P' && tok.str[1] == 'C')) {
+		chara_id = 0;
+		tok.str += 2;
+		tok.len -= 2;
+	}
+
+	switch (*tok.str) {
+	case 'A':
+		if (Token_equals_literal(&tok, "Aka")) {
+			StrComparisonValue_set_string(parse_result, cdatan(1, chara_id));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Age")) {
+			StrComparisonValue_set_integer(parse_result, gdata(10) - cdata(21, chara_id));
+			return true;
+		}
+		break;
+	case 'C':
+		if (Token_equals_literal(&tok, "Class")) {
+			StrComparisonValue_set_string(parse_result, cdatan(3, chara_id));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Cash")) {
+			StrComparisonValue_set_integer(parse_result, cdata(30, chara_id));
+			return true;
+		}
+		break;
+	case 'D':
+		if (Token_equals_literal(&tok, "Date")) {
+			StrComparisonValue_set_integer(parse_result, gdata(12));
+			return true;
+		}
+		break;
+	case 'F':
+		if (Token_equals_literal(&tok, "Fame")) {
+			StrComparisonValue_set_integer(parse_result, cdata(34, chara_id));
+			return true;
+		}
+		break;
+	case 'H':
+		if (Token_equals_literal(&tok, "Height")) {
+			StrComparisonValue_set_integer(parse_result, cdata(19, chara_id));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Hour")) {
+			StrComparisonValue_set_integer(parse_result, gdata(13));
+			return true;
+		}
+		break;
+	case 'I':
+		if (Token_equals_literal(&tok, "Impression")) {
+			StrComparisonValue_set_integer(parse_result, cdata(17, chara_id));
+			return true;
+		}
+		break;
+	case 'K':
+		if (Token_equals_literal(&tok, "Karma")) {
+			StrComparisonValue_set_integer(parse_result, cdata(49, 0));
+			return true;
+		}
+		break;
+	case 'M':
+		if (Token_equals_literal(&tok, "Month")) {
+			StrComparisonValue_set_integer(parse_result, gdata(11));
+			return true;
+		}
+		break;
+	case 'N':
+		if (Token_equals_literal(&tok, "Name")) {
+			StrComparisonValue_set_string(parse_result, cdatan(0, chara_id));
+			return true;
+		}
+		break;
+	case 'R':
+		if (Token_equals_literal(&tok, "Race")) {
+			StrComparisonValue_set_string(parse_result, cdatan(2, chara_id));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Religion")) {
+			switch (cdata(61, chara_id)) {
+			case 0:
+				StrComparisonValue_set_string_literal(parse_result, "無のエイス");
+				return true;
+			case 1:
+				StrComparisonValue_set_string_literal(parse_result, "機械のマニ");
+				return true;
+			case 2:
+				StrComparisonValue_set_string_literal(parse_result, "風のルルウィ");
+				return true;
+			case 3:
+				StrComparisonValue_set_string_literal(parse_result, "元素のイツパロトル");
+				return true;
+			case 4:
+				StrComparisonValue_set_string_literal(parse_result, "幸運のエヘカトル");
+				return true;
+			case 5:
+				StrComparisonValue_set_string_literal(parse_result, "地のオパートス");
+				return true;
+			case 6:
+				StrComparisonValue_set_string_literal(parse_result, "癒しのジュア");
+				return true;
+			case 7:
+				StrComparisonValue_set_string_literal(parse_result, "収穫のクミロミ");
+				return true;
+			default:
+				StrComparisonValue_set_string_literal(parse_result, "-1");
+				return true;
+			}
+		}
+		break;
+	case 'W':
+		if (Token_equals_literal(&tok, "Weight")) {
+			StrComparisonValue_set_integer(parse_result, cdata(20, chara_id));
+			return true;
+		}
+		break;
+	case 'Y':
+		if (Token_equals_literal(&tok, "Year")) {
+			StrComparisonValue_set_integer(parse_result, gdata(10));
+			return true;
+		}
+		break;
+	case 'n':
+		if (Token_equals_literal(&tok, "nReligion")) {
+			switch (cdata(61, chara_id)) {
+			case 0:
+				StrComparisonValue_set_string_literal(parse_result, "エイス");
+				return true;
+			case 1:
+				StrComparisonValue_set_string_literal(parse_result, "マニ");
+				return true;
+			case 2:
+				StrComparisonValue_set_string_literal(parse_result, "ルルウィ");
+				return true;
+			case 3:
+				StrComparisonValue_set_string_literal(parse_result, "イツパロトル");
+				return true;
+			case 4:
+				StrComparisonValue_set_string_literal(parse_result, "エヘカトル");
+				return true;
+			case 5:
+				StrComparisonValue_set_string_literal(parse_result, "オパートス");
+				return true;
+			case 6:
+				StrComparisonValue_set_string_literal(parse_result, "ジュア");
+				return true;
+			case 7:
+				StrComparisonValue_set_string_literal(parse_result, "クミロミ");
+				return true;
+			default:
+				StrComparisonValue_set_string_literal(parse_result, "-1");
+				return true;
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (Token_starts_with_literal(&tok, "global:")) {
+		tok.str += 7;
+		tok.len -= 7;
+		const char *value = getvalue(pr->data->addtgvar, &tok);
+		if (*value) {
+			StrComparisonValue_set_string(parse_result, value);
+			return true;
+		}
+	} else {
+		const char *value = getvalue(strarray(pr->data->hei, pr->data->addtlvarPVal, pr->data->unitid), &tok);
+		if (*value) {
+			StrComparisonValue_set_string(parse_result, value);
+			return true;
+		}
+	}
+
+	StrComparisonValue_set_string_literal(parse_result, "-1");
+	return true;
 }
 
 bool StrComparisonValue_equals(const StrComparisonValue *lhs, const StrComparisonValue *rhs) {
@@ -1049,176 +1275,6 @@ double comparisonval(args data, char *target) {
 	return atof(getvalue(strarray(data.hei, data.addtlvarPVal, referid), target));
 }
 
-const char* strcomparisonstr(args data, char *target) {
-	if (strstr(target, "\"") == target) {
-		return chartrim(target, '"');
-	}
-
-	int referid = data.unitid;
-	if (target[0] == 'P'&&target[1] == 'C') {
-		target += 2;
-		referid = 0;
-	}
-
-	switch (target[0]) {
-	case 'A':
-		if (equals(target, "Aka")) {
-			return cdatan(1, referid);
-		}
-		if (equals(target, "Age")) {
-			static char s[16];
-			sprintf(s, "%d", gdata(10) - cdata(21, referid));
-			return s;
-		}
-		break;
-	case 'C':
-		if (equals(target, "Class")) {
-			return cdatan(3, referid);
-		}
-		if (equals(target, "Cash")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(30, referid));
-			return s;
-		}
-		break;
-	case 'D':
-		if (equals(target, "Date")) {
-			static char s[16];
-			sprintf(s, "%d", gdata(12));
-			return s;
-		}
-		break;
-	case 'F':
-		if (equals(target, "Fame")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(34, referid));
-			return s;
-		}
-		break;
-	case 'H':
-		if (equals(target, "Height")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(19, referid));
-			return s;
-		}
-		if (equals(target, "Hour")) {
-			static char s[16];
-			sprintf(s, "%d", gdata(13));
-			return s;
-		}
-		break;
-	case 'I':
-		if (equals(target, "Impression")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(17, referid));
-			return s;
-		}
-		break;
-	case 'K':
-		if (equals(target, "Karma")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(49, 0));
-			return s;
-		}
-		break;
-	case 'M':
-		if (equals(target, "Month")) {
-			static char s[16];
-			sprintf(s, "%d", gdata(11));
-			return s;
-		}
-		break;
-	case 'N':
-		if (equals(target, "Name")) {
-			return cdatan(0, referid);
-		}
-		break;
-	case 'R':
-		if (equals(target, "Race")) {
-			return cdatan(2, referid);
-		}
-		if (equals(target, "Religion")) {
-			switch (cdata(61, referid)) {
-			case 0:
-				return "無のエイス";
-			case 1:
-				return "機械のマニ";
-			case 2:
-				return "風のルルウィ";
-			case 3:
-				return "元素のイツパロトル";
-			case 4:
-				return "幸運のエヘカトル";
-			case 5:
-				return "地のオパートス";
-			case 6:
-				return "癒しのジュア";
-			case 7:
-				return "収穫のクミロミ";
-			default:
-				return "-1";
-			}
-		}
-		break;
-	case 'W':
-		if (equals(target, "Weight")) {
-			static char s[16];
-			sprintf(s, "%d", cdata(20, referid));
-			return s;
-		}
-		break;
-	case 'Y':
-		if (equals(target, "Year")) {
-			static char s[16];
-			sprintf(s, "%d", gdata(10));
-			return s;
-		}
-		break;
-	case 'n':
-		if (equals(target, "nReligion")) {
-			switch (cdata(61, referid)) {
-			case 0:
-				return "エイス";
-			case 1:
-				return "マニ";
-			case 2:
-				return "ルルウィ";
-			case 3:
-				return "イツパロトル";
-			case 4:
-				return "エヘカトル";
-			case 5:
-				return "オパートス";
-			case 6:
-				return "ジュア";
-			case 7:
-				return "クミロミ";
-			default:
-				return "-1";
-			}
-		}
-		break;
-	default:
-		break;
-	}
-
-	const char *value;
-	if (strstr(target, "global:") == target) {
-		target += 7;
-		value = getvalue(data.addtgvar, target);
-		if (!equals(value, "")) {
-			return value;
-		}
-	} else {
-		value = getvalue(strarray(data.hei, data.addtlvarPVal, data.unitid), target);
-		if (!equals(value, "")) {
-			return value;
-		}
-	}
-
-	return "-1";
-}
-
 void Parser_init(Parser *pr, const char* condition, args *data) {
 	pr->str = condition;
 	pr->data = data;
@@ -1704,16 +1760,16 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return cbit(data, data.unitid, 966);
 		}
 		if (Token_equals_literal(&tok, "strcomparison")) {
-			StrComparisonValue lhs = Parser_parse_strcomparison_value(pr);
-			if (lhs.type == STRCOMPARISON_VALUE_TYPE_ERROR)
+			StrComparisonValue lhs;
+			if (!Parser_parse_strcomparison_value(pr, &lhs))
 				return false;
 
 			Token op;
 			if (!Parser_parse_one_identifier(pr, &op, TOKEN_TYPE_IDENTIFIER))
 				return false;
 
-			StrComparisonValue rhs = Parser_parse_strcomparison_value(pr);
-			if (lhs.type == STRCOMPARISON_VALUE_TYPE_ERROR)
+			StrComparisonValue rhs;
+			if (!Parser_parse_strcomparison_value(pr, &rhs))
 				return false;
 
 			if (Token_equals_literal(&op, "equal")) {
