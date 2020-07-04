@@ -1146,12 +1146,31 @@ bool IntComparisonValue_compares(IntComparisonValue lhs, IntComparisonValue rhs,
 }
 
 bool Parser_parse_strcomparison_value(Parser *pr, StrComparisonValue *parse_result) {
-	static char static_buffer[32];
+	static char static_buffer[256];
 
 	Parser_skip_whitespaces(pr);
 
-	if (*pr->str == '"') {
-		// TODO string literal
+	if (*pr->str == '"') { // double-quoted string literal
+		++pr->str;
+		size_t i = 0;
+		while (*pr->str) {
+			char c = *pr->str;
+			if (c == '\\') {
+				++pr->str;
+				if (!*pr->str) {
+					return false; // Unexpected NUL
+				}
+				c = *pr->str;
+			} else if (c == '"') {
+				break;
+			}
+			static_buffer[i] = c;
+			++i;
+			++pr->str;
+		}
+		static_buffer[i] = '\0';
+		parse_result->str = static_buffer;
+		parse_result->len = i;
 		return true;
 	}
 
