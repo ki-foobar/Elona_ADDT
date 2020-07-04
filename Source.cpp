@@ -145,19 +145,6 @@ int split(char *str, const char *delim, char *outlist[], int limit) {
 	return cnt;
 }
 
-bool decimalonly(char *p) {
-	while (p[0]) {
-		if (p[0] == '.' || (p[0] >= '0' && p[0] <= '9')) p++;
-		else break;
-	}
-	if (p[0]) {
-		return false;
-	}
-	else {
-		return true;
-	}
-}
-
 /* 先頭からtabを取り除き、その数を返す */
 int removefs(char *s) {
 	int i = 0;
@@ -174,20 +161,6 @@ int search(char *buff, char s) {
 		index++;
 	}
 	return index - buff;
-}
-
-char* chartrim(char *s, char g) {
-	if (s == NULL) return s;
-	int i = strlen(s);
-	int count = 0;
-	while (--i >= 0 && s[i] == g) count++;
-	s[i + 1] = '\0';
-
-	i = 0;
-	while (s[i] != '\0' && s[i] == g) i++;
-	strcpy(s, &s[i]);
-
-	return s;
 }
 
 bool Token_equals_with_length(const Token *tok, const char *s, size_t s_len) {
