@@ -5,8 +5,6 @@
 
 #define ADDT_EXPORT extern "C" __declspec (dllexport)
 
-#define equals(s1,s2) (strcmp(s1,s2) == 0)
-
 #define gdata(i) intarray(pr->data->hei,pr->data->gdataPVal,i)
 #define cdata(i,j) intmap(pr->data->hei,pr->data->cdataPVal,i,j)
 #define adata(i,j) intmap(pr->data->hei,pr->data->adataPVal,i,j)
@@ -14,7 +12,6 @@
 #define mdata(i) intarray(pr->data->hei,pr->data->mdataPVal,i)
 #define cdatan(i,j) strmap(pr->data->hei,pr->data->cdatanPVal,i,j)
 #define rattach(dbl) rankflag ? rankattach(dbl) : (dbl)
-#define max(x, y) ((x) > (y) ? (x) : (y))
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
 
@@ -473,7 +470,572 @@ bool RangeMatcher_compares(const RangeMatcher *rm, int value) {
 }
 
 bool Parser_parse_intcomparison_value(Parser *pr, IntComparisonValue *parse_result) {
-	// TODO
+	Parser_skip_whitespaces(pr);
+
+	Token tok;
+	if (!Parser_parse_one_token(pr, &tok))
+		return false;
+
+	if (tok.type == TOKEN_TYPE_INTEGER) {
+		char *end_pos = pr->str;
+		*parse_result = strtod(tok.str, &end_pos);
+		pr->str = end_pos;
+		return true;
+	}
+
+	if (tok.type != TOKEN_TYPE_IDENTIFIER)
+		return false;
+
+	int chara_id = pr->data->unitid;
+	if (tok.len >= 3 && (tok.str[0] == 'P' && tok.str[1] == 'C')) {
+		chara_id = 0;
+		tok.str += 2;
+		tok.len -= 2;
+	}
+
+	bool potentialflag = false, rankflag = false, expflag = false, revisionflag = false;
+
+	while (1) {
+		if (tok.str[tok.len - 1] == 'P') {
+			potentialflag = true;
+			tok.len -= 1;
+		} else if (tok.str[tok.len - 1] == 'R') {
+			rankflag = true;
+			tok.len -= 1;
+		} else if (tok.str[tok.len - 1] == 'E') {
+			expflag = true;
+			tok.len -= 1;
+		} else {
+			break;
+		}
+	}
+	if (*pr->str == '+') {
+		++pr->str;
+		revisionflag = true;
+		tok.len += 1;
+	}
+
+	switch (*tok.str) {
+	case 'A':
+		if (Token_equals_literal(&tok, "Anatomy")) {
+			*parse_result = rattach(scomval(pr->data, 161, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Alchemy")) {
+			*parse_result = rattach(scomval(pr->data, 178, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Axe")) {
+			*parse_result = rattach(scomval(pr->data, 102, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Age")) {
+			*parse_result = rattach((gdata(10) - cdata(21, chara_id)));
+			return true;
+		}
+		break;
+	case 'B':
+		if (Token_equals_literal(&tok, "Blunt")) {
+			*parse_result = rattach(scomval(pr->data, 103, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Bow")) {
+			*parse_result = rattach(scomval(pr->data, 108, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'C':
+		if (Token_equals_literal(&tok, "Constitution")) {
+			*parse_result = rattach(scomval(pr->data, 11, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Charm")) {
+			*parse_result = rattach(scomval(pr->data, 17, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Carpentry")) {
+			*parse_result = rattach(scomval(pr->data, 176, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Cooking")) {
+			*parse_result = rattach(scomval(pr->data, 184, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Casting")) {
+			*parse_result = rattach(scomval(pr->data, 172, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Control_Magic")) {
+			*parse_result = rattach(scomval(pr->data, 188, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Crossbow")) {
+			*parse_result = rattach(scomval(pr->data, 109, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'D':
+		if (Token_equals_literal(&tok, "Dexterity")) {
+			*parse_result = rattach(scomval(pr->data, 12, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Dual_Wield")) {
+			*parse_result = rattach(scomval(pr->data, 166, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Disarm_Trap")) {
+			*parse_result = rattach(scomval(pr->data, 175, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Detection")) {
+			*parse_result = rattach(scomval(pr->data, 159, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'E':
+		if (Token_equals_literal(&tok, "Evasion")) {
+			*parse_result = rattach(scomval(pr->data, 173, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Eye_of_Mind")) {
+			*parse_result = rattach(scomval(pr->data, 186, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'F':
+		if (Token_equals_literal(&tok, "Fishing")) {
+			*parse_result = rattach(scomval(pr->data, 185, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Faith")) {
+			*parse_result = rattach(scomval(pr->data, 181, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Firearm")) {
+			*parse_result = rattach(scomval(pr->data, 110, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Fame")) {
+			*parse_result = rattach(cdata(34, chara_id));
+			return true;
+		}
+		break;
+	case 'G':
+		if (Token_equals_literal(&tok, "Greater_Evasion")) {
+			*parse_result = rattach(scomval(pr->data, 187, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Gene_engineer")) {
+			*parse_result = rattach(scomval(pr->data, 151, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Gardening")) {
+			*parse_result = rattach(scomval(pr->data, 180, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'H':
+		if (Token_equals_literal(&tok, "Healing")) {
+			*parse_result = rattach(scomval(pr->data, 154, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Heavy_Armor")) {
+			*parse_result = rattach(scomval(pr->data, 169, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Hp")) {
+			*parse_result = rattach(cdata(50, chara_id));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Height")) {
+			*parse_result = rattach(cdata(19, chara_id));
+			return true;
+		}
+		break;
+	case 'I':
+		if (Token_equals_literal(&tok, "Investing")) {
+			*parse_result = rattach(scomval(pr->data, 160, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'J':
+		if (Token_equals_literal(&tok, "Jeweler")) {
+			*parse_result = rattach(scomval(pr->data, 179, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'L':
+		if (Token_equals_literal(&tok, "Learning")) {
+			*parse_result = rattach(scomval(pr->data, 14, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Lack")) {
+			*parse_result = rattach(scomval(pr->data, 19, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Life")) {
+			*parse_result = rattach(scomval(pr->data, 2, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Light_Armor")) {
+			*parse_result = rattach(scomval(pr->data, 171, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Lock_Picking")) {
+			*parse_result = rattach(scomval(pr->data, 158, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Literacy")) {
+			*parse_result = rattach(scomval(pr->data, 150, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Long_Sword")) {
+			*parse_result = rattach(scomval(pr->data, 100, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Level")) {
+			*parse_result = rattach(cdata(38, chara_id));
+			return true;
+		}
+		break;
+	case 'M':
+		switch (tok.str[1]) {
+		case 'a':
+			if (Token_equals_literal(&tok, "Magic")) {
+				*parse_result = rattach(scomval(pr->data, 16, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Mana")) {
+				*parse_result = rattach(scomval(pr->data, 3, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "MaxHp")) {
+				*parse_result = rattach(cdata(51, chara_id));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "MaxSp")) {
+				*parse_result = rattach(cdata(53, chara_id));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "MaxMp")) {
+				*parse_result = rattach(cdata(56, chara_id));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Marksman")) {
+				*parse_result = rattach(scomval(pr->data, 189, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Magic_Capacity")) {
+				*parse_result = rattach(scomval(pr->data, 164, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Magic_Device")) {
+				*parse_result = rattach(scomval(pr->data, 174, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Martial_Arts")) {
+				*parse_result = rattach(scomval(pr->data, 106, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'e':
+			if (Token_equals_literal(&tok, "Medium_Armor")) {
+				*parse_result = rattach(scomval(pr->data, 170, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Memorization")) {
+				*parse_result = rattach(scomval(pr->data, 165, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Meditation")) {
+				*parse_result = rattach(scomval(pr->data, 155, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'i':
+			if (Token_equals_literal(&tok, "Mining")) {
+				*parse_result = rattach(scomval(pr->data, 163, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'p':
+			if (Token_equals_literal(&tok, "Mp")) {
+				*parse_result = rattach(cdata(55, chara_id));
+				return true;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
+	case 'N':
+		if (Token_equals_literal(&tok, "Negotiation")) {
+			*parse_result = rattach(scomval(pr->data, 156, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'P':
+		if (Token_equals_literal(&tok, "Perception")) {
+			*parse_result = rattach(scomval(pr->data, 13, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Pickpocket")) {
+			*parse_result = rattach(scomval(pr->data, 300, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Performer")) {
+			*parse_result = rattach(scomval(pr->data, 183, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Polearm")) {
+			*parse_result = rattach(scomval(pr->data, 104, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'R':
+		if (Token_equals_literal(&tok, "Riding")) {
+			*parse_result = rattach(scomval(pr->data, 301, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'S':
+		switch (tok.str[1]) {
+		case 'a':
+			if (Token_equals_literal(&tok, "Sanity")) {
+				*parse_result = rattach(cdata(34, chara_id));
+				return true;
+			}
+			break;
+		case 'c':
+			if (Token_equals_literal(&tok, "Scythe")) {
+				*parse_result = rattach(scomval(pr->data, 107, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'e':
+			if (Token_equals_literal(&tok, "Sense_Quality")) {
+				*parse_result = rattach(scomval(pr->data, 162, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'h':
+			if (Token_equals_literal(&tok, "Shield")) {
+				*parse_result = rattach(scomval(pr->data, 168, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Short_Sword")) {
+				*parse_result = rattach(scomval(pr->data, 101, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'p':
+			if (Token_equals_literal(&tok, "Speed")) {
+				*parse_result = rattach(scomval(pr->data, 18, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Sp")) {
+				*parse_result = rattach(cdata(52, chara_id));
+				return true;
+			}
+			break;
+		case 't':
+			if (Token_equals_literal(&tok, "Strength")) {
+				*parse_result = rattach(scomval(pr->data, 10, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Stealth")) {
+				*parse_result = rattach(scomval(pr->data, 157, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			if (Token_equals_literal(&tok, "Stave")) {
+				*parse_result = rattach(scomval(pr->data, 105, chara_id, potentialflag, expflag, revisionflag));
+				return true;
+			}
+			break;
+		case 'u':
+			if (Token_equals_literal(&tok, "Superb")) {
+				*parse_result = rattach(5.0);
+				return true;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
+	case 'T':
+		if (Token_equals_literal(&tok, "Tactics")) {
+			*parse_result = rattach(scomval(pr->data, 152, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Two_Hand")) {
+			*parse_result = rattach(scomval(pr->data, 167, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Tailoring")) {
+			*parse_result = rattach(scomval(pr->data, 177, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Traveling")) {
+			*parse_result = rattach(scomval(pr->data, 182, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Throwing")) {
+			*parse_result = rattach(scomval(pr->data, 111, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'W':
+		if (Token_equals_literal(&tok, "Willpower")) {
+			*parse_result = rattach(scomval(pr->data, 15, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Weight_Lifting")) {
+			*parse_result = rattach(scomval(pr->data, 153, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "Weight")) {
+			*parse_result = rattach(cdata(20, chara_id));
+			return true;
+		}
+		break;
+	case 'b':
+		if (Token_equals_literal(&tok, "bad")) {
+			*parse_result = rattach(2.0);
+			return true;
+		}
+		break;
+	case 'c':
+		if (Token_equals_literal(&tok, "cold")) {
+			*parse_result = rattach(scomval(pr->data, 51, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "chaos")) {
+			*parse_result = rattach(scomval(pr->data, 59, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "cut")) {
+			*parse_result = rattach(scomval(pr->data, 61, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_starts_with_literal(&tok, "cdata")) {
+			*parse_result = rattach(sdata(atoi(tok.str + strlen("cdata")), pr->data->unitid));
+			return true;
+		}
+		if (Token_starts_with_literal(&tok, "ccdata")) {
+			*parse_result = rattach(sdata(atoi(tok.str + strlen("ccdata")), pr->data->ccid));
+			return true;
+		}
+		if (Token_starts_with_literal(&tok, "csdata")) {
+			*parse_result = rattach(sdata(atoi(tok.str + strlen("csdata")), pr->data->ccid));
+			return true;
+		}
+		break;
+	case 'd':
+		if (Token_equals_literal(&tok, "darkness")) {
+			*parse_result = rattach(scomval(pr->data, 53, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'f':
+		if (Token_equals_literal(&tok, "fire")) {
+			*parse_result = rattach(scomval(pr->data, 50, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'g':
+		if (Token_starts_with_literal(&tok, "gdata")) {
+			*parse_result = rattach(gdata(atoi(tok.str + strlen("gdata"))));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "great")) {
+			*parse_result = rattach(4.0);
+			return true;
+		}
+		if (Token_equals_literal(&tok, "good")) {
+			*parse_result = rattach(3.0);
+			return true;
+		}
+		break;
+	case 'h':
+		if (Token_equals_literal(&tok, "hopeless")) {
+			*parse_result = rattach(1.0);
+			return true;
+		}
+		break;
+	case 'l':
+		if (Token_equals_literal(&tok, "lightning")) {
+			*parse_result = rattach(scomval(pr->data, 52, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'm':
+		if (Token_equals_literal(&tok, "mind")) {
+			*parse_result = rattach(scomval(pr->data, 54, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "magic")) {
+			*parse_result = rattach(scomval(pr->data, 60, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'n':
+		if (Token_equals_literal(&tok, "nether")) {
+			*parse_result = rattach(scomval(pr->data, 56, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_equals_literal(&tok, "nerve")) {
+			*parse_result = rattach(scomval(pr->data, 58, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 'p':
+		if (Token_equals_literal(&tok, "poison")) {
+			*parse_result = rattach(scomval(pr->data, 55, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		break;
+	case 's':
+		if (Token_equals_literal(&tok, "sound")) {
+			*parse_result = rattach(scomval(pr->data, 57, chara_id, potentialflag, expflag, revisionflag));
+			return true;
+		}
+		if (Token_starts_with_literal(&tok, "sdata")) {
+			*parse_result = rattach(sdata(atoi(tok.str + strlen("sdata")), pr->data->unitid));
+			return true;
+		}
+		break;
+	case 't':
+		if (Token_starts_with_literal(&tok, "tcdata")) {
+			*parse_result = rattach(cdata(atoi(tok.str + strlen("tcdata"), pr->data->tcid));
+			return true;
+		}
+		if (Token_starts_with_literal(&tok, "tsdata")) {
+			*parse_result = rattach(sdata(atoi(tok.str + strlen("tsdata"), pr->data->tcid));
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (Token_starts_with_literal(&tok, "global:")) {
+		tok.str += 7;
+		tok.len -= 7;
+		const char *value = getvalue(pr->data->addtgvar, &tok);
+		if (*value) {
+			*parse_result = atof(value);
+			return true;
+		}
+	} else {
+		const char *value = getvalue(strarray(pr->data->hei, pr->data->addtlvarPVal, pr->data->unitid), &tok);
+		if (*value) {
+			*parse_result = atof(value);
+			return true;
+		}
+	}
+
+	*parse_result = 0.0;
+	return true;
 }
 
 bool Parser_parse_intcomparison_operator(Parser *pr, IntComparisonOperator *parse_result) {
@@ -899,452 +1461,6 @@ double scomval(args data, int index, int unitid, bool potentialflag, bool expfla
 	return 0.0;
 }
 
-double comparisonval(args data, char *target) {
-	bool potentialflag = false, rankflag = false, expflag = false, revisionflag = false;
-	int sdataindex = 0, referid = data.unitid;
-
-	if (target[0] == 'P' && target[1] == 'C') {
-		referid = 0;
-		target += 2;
-	}
-	for (int i = strlen(target) - 1; i != 0; i--) {
-		if (target[i] == 'P') {
-			potentialflag = true;
-		}
-		else if (target[i] == 'R') {
-			rankflag = true;
-		}
-		else if (target[i] == 'E') {
-			expflag = true;
-		}
-		else if (target[i] == '+') {
-			revisionflag = true;
-		}
-		else {
-			target[i + 1] = '\0';
-			break;
-		}
-	}
-
-	if (decimalonly(target)) {
-		return rattach(atof(target));
-	}
-
-	switch (target[0]) {
-	case 'A':
-		if (equals(target, "Anatomy")) {
-			return rattach(scomval(data, 161, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Alchemy")) {
-			return rattach(scomval(data, 178, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Axe")) {
-			return rattach(scomval(data, 102, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Age")) {
-			return rattach((double)(gdata(10) - cdata(21, referid)));
-		}
-		break;
-	case 'B':
-		if (equals(target, "Blunt")) {
-			return rattach(scomval(data, 103, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Bow")) {
-			return rattach(scomval(data, 108, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'C':
-		if (equals(target, "Constitution")) {
-			return rattach(scomval(data, 11, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Charm")) {
-			return rattach(scomval(data, 17, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Carpentry")) {
-			return rattach(scomval(data, 176, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Cooking")) {
-			return rattach(scomval(data, 184, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Casting")) {
-			return rattach(scomval(data, 172, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Control_Magic")) {
-			return rattach(scomval(data, 188, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Crossbow")) {
-			return rattach(scomval(data, 109, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'D':
-		if (equals(target, "Dexterity")) {
-			return rattach(scomval(data, 12, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Dual_Wield")) {
-			return rattach(scomval(data, 166, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Disarm_Trap")) {
-			return rattach(scomval(data, 175, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Detection")) {
-			return rattach(scomval(data, 159, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'E':
-		if (equals(target, "Evasion")) {
-			return rattach(scomval(data, 173, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Eye_of_Mind")) {
-			return rattach(scomval(data, 186, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'F':
-		if (equals(target, "Fishing")) {
-			return rattach(scomval(data, 185, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Faith")) {
-			return rattach(scomval(data, 181, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Firearm")) {
-			return rattach(scomval(data, 110, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Fame")) {
-			return rattach((double)cdata(34, referid));
-		}
-		break;
-	case 'G':
-		if (equals(target, "Greater_Evasion")) {
-			return rattach(scomval(data, 187, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Gene_engineer")) {
-			return rattach(scomval(data, 151, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Gardening")) {
-			return rattach(scomval(data, 180, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'H':
-		if (equals(target, "Healing")) {
-			return rattach(scomval(data, 154, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Heavy_Armor")) {
-			return rattach(scomval(data, 169, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Hp")) {
-			return rattach((double)cdata(50, referid));
-		}
-		if (equals(target, "Height")) {
-			return rattach((double)cdata(19, referid));
-		}
-		break;
-	case 'I':
-		if (equals(target, "Investing")) {
-			return rattach(scomval(data, 160, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'J':
-		if (equals(target, "Jeweler")) {
-			return rattach(scomval(data, 179, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'L':
-		if (equals(target, "Learning")) {
-			return rattach(scomval(data, 14, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Lack")) {
-			return rattach(scomval(data, 19, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Life")) {
-			return rattach(scomval(data, 2, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Light_Armor")) {
-			return rattach(scomval(data, 171, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Lock_Picking")) {
-			return rattach(scomval(data, 158, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Literacy")) {
-			return rattach(scomval(data, 150, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Long_Sword")) {
-			return rattach(scomval(data, 100, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Level")) {
-			return rattach((double)cdata(38, referid));
-		}
-		break;
-	case 'M':
-		switch (target[1]) {
-		case 'a':
-			if (equals(target, "Magic")) {
-				return rattach(scomval(data, 16, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Mana")) {
-				return rattach(scomval(data, 3, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "MaxHp")) {
-				return rattach((double)cdata(51, referid));
-			}
-			if (equals(target, "MaxSp")) {
-				return rattach((double)cdata(53, referid));
-			}
-			if (equals(target, "MaxMp")) {
-				return rattach((double)cdata(56, referid));
-			}
-			if (equals(target, "Marksman")) {
-				return rattach(scomval(data, 189, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Magic_Capacity")) {
-				return rattach(scomval(data, 164, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Magic_Device")) {
-				return rattach(scomval(data, 174, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Martial_Arts")) {
-				return rattach(scomval(data, 106, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'e':
-			if (equals(target, "Medium_Armor")) {
-				return rattach(scomval(data, 170, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Memorization")) {
-				return rattach(scomval(data, 165, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Meditation")) {
-				return rattach(scomval(data, 155, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'i':
-			if (equals(target, "Mining")) {
-				return rattach(scomval(data, 163, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'p':
-			if (equals(target, "Mp")) {
-				return rattach((double)cdata(55, referid));
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	case 'N':
-		if (equals(target, "Negotiation")) {
-			return rattach(scomval(data, 156, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'P':
-		if (equals(target, "Perception")) {
-			return rattach(scomval(data, 13, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Pickpocket")) {
-			return rattach(scomval(data, 300, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Performer")) {
-			return rattach(scomval(data, 183, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Polearm")) {
-			return rattach(scomval(data, 104, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'R':
-		if (equals(target, "Riding")) {
-			return rattach(scomval(data, 301, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'S':
-		switch (target[1]) {
-		case 'a':
-			if (equals(target, "Sanity")) {
-				return rattach((double)cdata(34, referid));
-			}
-			break;
-		case 'c':
-			if (equals(target, "Scythe")) {
-				return rattach(scomval(data, 107, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'e':
-			if (equals(target, "Sense_Quality")) {
-				return rattach(scomval(data, 162, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'h':
-			if (equals(target, "Shield")) {
-				return rattach(scomval(data, 168, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Short_Sword")) {
-				return rattach(scomval(data, 101, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'p':
-			if (equals(target, "Speed")) {
-				return rattach(scomval(data, 18, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Sp")) {
-				return rattach((double)cdata(52, referid));
-			}
-			break;
-		case 't':
-			if (equals(target, "Strength")) {
-				return rattach(scomval(data, 10, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Stealth")) {
-				return rattach(scomval(data, 157, referid, potentialflag, expflag, revisionflag));
-			}
-			if (equals(target, "Stave")) {
-				return rattach(scomval(data, 105, referid, potentialflag, expflag, revisionflag));
-			}
-			break;
-		case 'u':
-			if (equals(target, "Superb")) {
-				return rattach(5.0);
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	case 'T':
-		if (equals(target, "Tactics")) {
-			return rattach(scomval(data, 152, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Two_Hand")) {
-			return rattach(scomval(data, 167, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Tailoring")) {
-			return rattach(scomval(data, 177, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Traveling")) {
-			return rattach(scomval(data, 182, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Throwing")) {
-			return rattach(scomval(data, 111, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'W':
-		if (equals(target, "Willpower")) {
-			return rattach(scomval(data, 15, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Weight_Lifting")) {
-			return rattach(scomval(data, 153, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "Weight")) {
-			return rattach((double)cdata(20, referid));
-		}
-		break;
-	case 'b':
-		if (equals(target, "bad")) {
-			return rattach(2.0);
-		}
-		break;
-	case 'c':
-		if (equals(target, "cold")) {
-			return rattach(scomval(data, 51, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "chaos")) {
-			return rattach(scomval(data, 59, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "cut")) {
-			return rattach(scomval(data, 61, referid, potentialflag, expflag, revisionflag));
-		}
-		if (strstr(target, "cdata") == target) {
-			target += 5;
-			return rattach((double)cdata(atoi(target), data.unitid));
-		}
-		if (strstr(target, "ccdata") == target) {
-			target += 6;
-			return rattach((double)cdata(atoi(target), data.ccid));
-		}
-		if (strstr(target, "csdata") == target) {
-			target += 6;
-			return rattach((double)sdata(atoi(target), data.ccid));
-		}
-		break;
-	case 'd':
-		if (equals(target, "darkness")) {
-			return rattach(scomval(data, 53, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'f':
-		if (equals(target, "fire")) {
-			return rattach(scomval(data, 50, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'g':
-		if (strstr(target, "gdata") == target) {
-			target += 5;
-			return rattach((double)gdata(atoi(target)));
-		}
-		if (equals(target, "great")) {
-			return rattach(4.0);
-		}
-		if (equals(target, "good")) {
-			return rattach(3.0);
-		}
-		break;
-	case 'h':
-		if (equals(target, "hopeless")) {
-			return rattach(1.0);
-		}
-		break;
-	case 'l':
-		if (equals(target, "lightning")) {
-			return rattach(scomval(data, 52, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'm':
-		if (equals(target, "mind")) {
-			return rattach(scomval(data, 54, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "magic")) {
-			return rattach(scomval(data, 60, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'n':
-		if (equals(target, "nether")) {
-			return rattach(scomval(data, 56, referid, potentialflag, expflag, revisionflag));
-		}
-		if (equals(target, "nerve")) {
-			return rattach(scomval(data, 58, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 'p':
-		if (equals(target, "poison")) {
-			return rattach(scomval(data, 55, referid, potentialflag, expflag, revisionflag));
-		}
-		break;
-	case 's':
-		if (equals(target, "sound")) {
-			return rattach(scomval(data, 57, referid, potentialflag, expflag, revisionflag));
-		}
-		if (strstr(target, "sdata") == target) {
-			target += 5;
-			return rattach((double)sdata(atoi(target), data.unitid));
-		}
-		break;
-	case 't':
-		if (strstr(target, "tcdata") == target) {
-			target += 6;
-			return rattach((double)cdata(atoi(target), data.tcid));
-		}
-		if (strstr(target, "tsdata") == target) {
-			target += 6;
-			return rattach((double)sdata(atoi(target), data.tcid));
-		}
-		break;
-	default:
-		break;
-	}
-
-	if (strstr(target, "global:") == target) {
-		target += 7;
-		return atof(getvalue(data.addtgvar, target));
-	}
-	return atof(getvalue(strarray(data.hei, data.addtlvarPVal, referid), target));
-}
-
 void Parser_init(Parser *pr, const char* condition, args *data) {
 	pr->str = condition;
 	pr->data = data;
@@ -1481,7 +1597,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return equals(cdatan(3, pr->data->unitid), cdatan(3, 0));
+					return strcmp(cdatan(3, pr->data->unitid), cdatan(3, 0)) == 0;
 				} else {
 					return Token_equals(&arg_0, cdatan(3, 0));
 				}
@@ -1537,7 +1653,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 					return false;
 
 				if (Token_equals_literal(&arg_0, "same")) {
-					return equals(cdatan(2, pr->data->unitid), cdatan(2, 0));
+					return strcmp(cdatan(2, pr->data->unitid), cdatan(2, 0)) == 0;
 				} else {
 					return Token_equals(&arg_0, cdatan(2, 0));
 				}
@@ -1580,10 +1696,10 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return false;
 		}
 		if (Token_equals_literal(&tok, "agreement")) {
-			return cbit(data, pr->data->unitid, 969);
+			return cbit(pr->data, pr->data->unitid, 969);
 		}
 		if (Token_equals_literal(&tok, "anorexia")) {
-			return cbit(data, pr->data->unitid, 986);
+			return cbit(pr->data, pr->data->unitid, 986);
 		}
 		break;
 	case 'c':
@@ -1660,7 +1776,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "same")) {
-				return equals(cdatan(3, pr->data->unitid), cdatan(3, 0));
+				return strcmp(cdatan(3, pr->data->unitid), cdatan(3, 0)) == 0;
 			}
 			else {
 				return Token_equals(&arg_0, cdatan(3, pr->data->unitid));
@@ -1736,7 +1852,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return false;
 		}
 		if (Token_equals_literal(&tok, "incognito")) {
-			return cbit(data, pr->data->unitid, 16);
+			return cbit(pr->data, pr->data->unitid, 16);
 		}
 		break;
 	case 'k':
@@ -1750,12 +1866,12 @@ bool Parser_parse_primary_expression(Parser *pr) {
 		break;
 	case 'l':
 		if (Token_equals_literal(&tok, "layhand")) {
-			return cbit(data, pr->data->unitid, 974);
+			return cbit(pr->data, pr->data->unitid, 974);
 		}
 		break;
 	case 'm':
 		if (Token_equals_literal(&tok, "married")) {
-			return cbit(data, pr->data->unitid, 961);
+			return cbit(pr->data, pr->data->unitid, 961);
 		}
 		break;
 	case 'p':
@@ -1803,7 +1919,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 				return false;
 
 			if (Token_equals_literal(&arg_0, "same")) {
-				return equals(cdatan(2, pr->data->unitid), cdatan(2, 0));
+				return strcmp(cdatan(2, pr->data->unitid), cdatan(2, 0)) == 0;
 			}
 			else {
 				return Token_equals(&arg_0, cdatan(2, pr->data->unitid));
@@ -1818,7 +1934,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return rand() % 100 < atoi(tok.str);
 		}
 		if (Token_equals_literal(&tok, "ridden")) {
-			return cbit(data, pr->data->unitid, 975);
+			return cbit(pr->data, pr->data->unitid, 975);
 		}
 		break;
 	case 's':
@@ -1839,7 +1955,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 			return false;
 		}
 		if (Token_equals_literal(&tok, "stethoscope")) {
-			return cbit(data, pr->data->unitid, 966);
+			return cbit(pr->data, pr->data->unitid, 966);
 		}
 		if (Token_equals_literal(&tok, "strcomparison")) {
 			StrComparisonValue lhs;
@@ -1865,7 +1981,7 @@ bool Parser_parse_primary_expression(Parser *pr) {
 		break;
 	case 't':
 		if (Token_equals_literal(&tok, "tied")) {
-			return cbit(data, pr->data->unitid, 968);
+			return cbit(pr->data, pr->data->unitid, 968);
 		}
 		if (Token_equals_literal(&tok, "true")) {
 			return true;
